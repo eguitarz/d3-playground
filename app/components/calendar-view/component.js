@@ -5,24 +5,24 @@ import { range } from 'd3-array';
 import { select } from 'd3-selection';
 import { timeFormat } from 'd3-time-format';
 import { timeDays, timeMonths, timeWeek, timeYear } from 'd3-time';
-import { csv } from 'd3-request';
+import { csv, json } from 'd3-request';
 import { nest } from 'd3-collection';
 
 export default Ember.Component.extend({
   didInsertElement() {
-    let width = 960,
-        height = 136,
-        cellSize = 17; // cell size
+    let width = 960;
+    let height = 136;
+    let cellSize = 17; // cell size
 
-    let percent = d3Format.format(".1%"),
-        format = timeFormat("%Y-%m-%d");
+    let percent = d3Format.format(".1%");
+    let format = timeFormat("%Y-%m-%d");
 
     let color = scaleQuantize()
         .domain([-0.05, 0.05])
         .range(range(11).map(function(d) { return "q" + d + "-11"; }));
 
     let svg = select("body").selectAll("svg")
-        .data(range(1990, 2011))
+        .data(range(2014, 2017))
       .enter().append("svg")
         .attr("width", width)
         .attr("height", height)
@@ -30,6 +30,7 @@ export default Ember.Component.extend({
       .append("g")
         .attr("transform", "translate(" + ((width - cellSize * 53) / 2) + "," + (height - cellSize * 7 - 1) + ")");
 
+    // print years
     svg.append("text")
       .attr("transform", "translate(-6," + cellSize * 3.5 + ")rotate(-90)")
       .style("text-anchor", "middle")
@@ -54,18 +55,19 @@ export default Ember.Component.extend({
         .attr("class", "month")
         .attr("d", monthPath);
 
-    csv("dji.csv", function(error, csv) {
+    const url = 'https://crossorigin.me/https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval=1440';
+    json(url, (error, { result: { XXBTZUSD: series } }) => {
       if (error) { throw error; }
 
       let data = nest()
-        .key(function(d) { return d.Date; })
-        .rollup(function(d) { return (d[0].Close - d[0].Open) / d[0].Open; })
-        .object(csv);
+        .key(function(d) { return format(new Date(d[0] * 1000)); })
+        .rollup(function([d]) { return (d[4] - d[1]) / d[1]; })
+        .object(series);
 
       rect.filter(function(d) { return d in data; })
         .attr("class", function(d) { return "day " + color(data[d]); })
         .select("title")
-        .text(function(d) { return d + ": " + percent(data[d]); });
+        .text(function(d) { return `${d} : ${percent(data[d])}`; });
     });
 
     function monthPath(t0) {

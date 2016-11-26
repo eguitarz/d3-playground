@@ -25,3 +25,20 @@ body {
 .RdYlGn .q8-11{fill:rgb(102,189,99)}
 .RdYlGn .q9-11{fill:rgb(26,152,80)}
 .RdYlGn .q10-11{fill:rgb(0,104,55)}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.area {
+  fill: steelblue;
+}
+
+.line {
+  fill: none;
+  stroke: gold;
+  stroke-width: 1.5px;
+}
