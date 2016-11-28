@@ -1,8 +1,8 @@
 import Ember from 'ember';
 import d3Format from 'd3-format';
 import { scaleQuantize, scaleTime, scaleLinear } from 'd3-scale';
-import { range, extent, max } from 'd3-array';
-import { select } from 'd3-selection';
+import { range, extent, max, bisector } from 'd3-array';
+import { select, mouse } from 'd3-selection';
 import { timeFormat, timeParse } from 'd3-time-format';
 import { timeDays, timeMonths, timeWeek, timeYear } from 'd3-time';
 import { csv, json } from 'd3-request';
@@ -51,6 +51,20 @@ export default Ember.Component.extend({
         volume: +d[7]
       }));
 
+      let bisectDate = bisector(function(d) { return d.date; }).left;
+      let formatValue = d3Format.format(",.2f");
+      let formatCurrency = function(d) { return "$" + formatValue(d); };
+
+      function mousemove() {
+        var x0 = x2.invert(mouse(this)[0]),
+        i = bisectDate(series, x0, 1),
+        d0 = series[i - 1],
+        d1 = series[i],
+        d = x0 - d0.date > d1.date - x0 ? d1 : d0;
+        focus.attr("transform", "translate(" + x2(d.date) + "," + y2(d.close) + ")");
+        focus.select("text").text(formatCurrency(d.close));
+      }
+
       x.domain(extent(series, d => d.date));
       y.domain([0, max(series, d => d.volume)]);
       x2.domain(extent(series, d => d.date));
@@ -98,6 +112,27 @@ export default Ember.Component.extend({
           .style("text-anchor", "end")
           .style('fill', 'gold')
           .text("Price ($)");
+
+      // focus
+      var focus = svg.append("g")
+        .attr("class", "focus")
+        .style("display", "none");
+
+      focus.append("circle")
+         .attr("r", 4.5);
+
+      focus.append("text")
+         .attr("x", 9)
+         .attr("dy", ".35em");
+
+      svg.append("rect")
+         .attr("class", "overlay")
+         .attr("width", width)
+         .attr("height", height)
+         .on("mouseover", function() { focus.style("display", null); })
+         .on("mouseout", function() { focus.style("display", "none"); })
+         .on("mousemove", mousemove);
+
     });
   }
 });
